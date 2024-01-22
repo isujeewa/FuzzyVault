@@ -38,18 +38,25 @@ def fuzzify_features(face_encoding):
 
     return fuzzified_values
 
+class UserVerificationError(Exception):
+    pass
+
 # Function to verify the user and return the correct password
 def verify_user_and_get_password(user_encoding, stored_encoding, stored_password):
-    # Compare facial encodings for verification
-    face_distance = face_recognition.face_distance([stored_encoding], user_encoding)[0]
+    try:
+        # Compare facial encodings for verification
+        face_distance = face_recognition.face_distance([stored_encoding], user_encoding)[0]
 
-    # You may need to adjust the threshold based on your specific use case
-    threshold = 0.4
+        # You may need to adjust the threshold based on your specific use case
+        threshold = 0.4
 
-    if face_distance < threshold:
-        return stored_password
-    else:
-        return None
+        if face_distance < threshold:
+            return stored_password
+        else:
+            return None
+    except Exception as e:
+        # Handle exceptions specific to your application
+        raise UserVerificationError(f"Error during user verification: {str(e)}")
 
 # Example usage
 def main():
