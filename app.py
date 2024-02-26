@@ -36,15 +36,16 @@ msgorg = json.dumps(msgobj.__dict__)
 
 print("password_string:", password_string)
 
+imageName = "img1.jpg"
 # Create a banner image with the message
-mainImage = Image.open("01_org_img.jpg")
+mainImage = Image.open(imageName)
 height = 200
 width =  mainImage.width
 text = msgorg
 # create the banner image print on the screen as log
 print("Creating banner image with the message: ", text)
 
-banner_img=create_banner(width, height, "Hello World")
+banner_img=create_banner(width, height, imageName)
 banner_img.save("02_banner.jpg")
 #banner image created and saved as banner.png
 print("banner image created and saved as banner.png")

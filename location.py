@@ -22,14 +22,14 @@ def generate_unique_key(latitude, longitude, toleration_distance=2.0):
     return unique_key
 
 # Example usage
-latitude_user1 =6.8489605982744255
-longitude_user1 = 79.87781618888795
+latitude_user1 =6.902824012349254
+longitude_user1 =79.85450551168583
 
-latitude_user2 =6.841638533820299
-longitude_user2 = 79.90105125734833
+latitude_user2 =6.90154479393716
+longitude_user2 =79.85158859849618
 
 # Users within 2 km
-toleration_distance_km = 10.0
+toleration_distance_km = 2.0
 toleration_radius_degrees = calculate_tolerance_radius(toleration_distance_km)
 
 unique_key_user1 = generate_unique_key(latitude_user1, longitude_user1, toleration_distance=toleration_distance_km)
