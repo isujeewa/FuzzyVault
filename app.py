@@ -8,13 +8,17 @@ from encryption import encrypt_image, decrypt_image
 from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_get_password
 from PIL import Image 
 import matplotlib.pyplot as plt
+import keyGeneration
 
 
   # Capture facial features
-face_encoding = capture_image_and_encoding()
+face_encoding = capture_image_and_encoding("Registering your face. Press 'Enter' when ready...")
+
+# get the random password 
+random_password = keyGeneration.generate_random_password()
 
 # Use "12345" as the password for fuzzification
-stored_password = np.array([0, 4, 6, 8, 1,2])
+stored_password = random_password
 # Convert the NumPy array to a list of strings
 password_list = stored_password.astype(str).tolist()
 
@@ -24,9 +28,9 @@ password_string = "".join(password_list)
 stored_encoding = face_encoding  # Store the initial facial encoding
 
 # Fuzzify facial features
-fuzzified_values = fuzzify_features(face_encoding)
+#fuzzified_values = fuzzify_features(face_encoding)
 
-print("Fuzzified Values:", fuzzified_values)
+#print("Fuzzified Values:", fuzzified_values)
 
 
 # Create a message object and serialize it to JSON
@@ -36,7 +40,10 @@ msgorg = json.dumps(msgobj.__dict__)
 
 print("password_string:", password_string)
 
-imageName = "img1.jpg"
+#wait until user press enter
+input("\nPress Enter to encrypt the image...")
+
+imageName = "tank.jpg"
 # Create a banner image with the message
 mainImage = Image.open(imageName)
 height = 200
@@ -48,8 +55,8 @@ print("Creating banner image with the message: ", text)
 banner_img=create_banner(width, height, imageName)
 banner_img.save("02_banner.jpg")
 #banner image created and saved as banner.png
-print("banner image created and saved as banner.png")
-print("encording the message to the banner image and saving as encoded.png")
+print("banner image created and saved as banner")
+print("encording the message to the banner image and saving as encoded")
 # banner image and encode the message
 encoded_img = hide_message(banner_img, msgorg)
  
@@ -99,7 +106,7 @@ while verification_attempts < 5:
     input("\nPress Enter to capture another snapshot for verification...")
 
     # Capture the second snapshot for verification
-    verification_encoding = capture_image_and_encoding()
+    verification_encoding = capture_image_and_encoding( "Capturing your face for verification. Press 'Enter' when ready...")
 
     # Verify the user and get the correct password
     correct_password = verify_user_and_get_password(verification_encoding, stored_encoding, stored_password)
@@ -111,7 +118,7 @@ while verification_attempts < 5:
     # Convert the list to a plain string
     password_string = "".join(password_list)
 
-    if correct_password is not None:
+    if correct_password is not None and "-1":
         if password_string == msgobjRecovered.secret:
             print("User Verified! Correct Password:", correct_password)
 
@@ -128,6 +135,11 @@ while verification_attempts < 5:
 
             # Increment the verification attempts counter
             verification_attempts =6
+
+        elif correct_password ==  "-1":
+            print("Unable to detect a face. Please align your face with the camera.")
+            # Increment the verification attempts counter
+            verification_attempts += 1
 
         else:
             print("User Verification Failed! Incorrect Password.")

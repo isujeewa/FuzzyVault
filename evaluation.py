@@ -31,7 +31,7 @@ def dhash(image, hash_size=8):
 #     max_distance = hash_size  # Maximum possible Hamming distance
 #     hash_percentage = ((max_distance - distance) / max_distance) * 100
 #     return hash_percentage
-
+#The code compares image shapes using Euclidean distance, normalizing it to a percentage for shape similarity assessment.
 def compare_shapes(image1, image2):
     # Get the dimensions of the images
     shape1 = image1.size
@@ -151,9 +151,9 @@ def compare_images(image1_path, image2_path):
     return overall_similarity
 
 # Example usage:
-image = "img4"
-image1_path = f"result/{image}_decrypted.jpg"
-image2_path = f"result/{image}.jpg"
+image = "tank"
+image1_path = f"result/{image}_decrypted_img.jpg"
+image2_path = f"result/{image}.png"
 
 similarity_percentage = compare_images(image1_path, image2_path)
 print("Overall Similarity Percentage:", similarity_percentage)

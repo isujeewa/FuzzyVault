@@ -1,4 +1,5 @@
 import hashlib
+from scipy.stats import chisquare
 
 def calculate_tolerance_radius(toleration_distance_km):
     # Convert toleration_distance to degrees
@@ -21,20 +22,53 @@ def generate_unique_key(latitude, longitude, toleration_distance=2.0):
 
     return unique_key
 
-# Example usage
-latitude_user1 =6.902824012349254
-longitude_user1 =79.85450551168583
 
-latitude_user2 =6.90154479393716
-longitude_user2 =79.85158859849618
+
+def evaluate_randomness(key):
+    # Convert hexadecimal key to a list of integers
+    key_integers = [int(key[i:i+2], 16) for i in range(0, len(key), 2)]
+    
+    # Perform the chi-squared test
+    _, p_value = chisquare(key_integers)
+    
+    return p_value
+
+# Example keys (replace these with your actual keys)
+key1 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6"
+key2 = "6c5b4a3d2e1c0b9a8f7e6d5c4b3a2f1"
+
+# Evaluate randomness for each key
+p_value1 = evaluate_randomness(key1)
+p_value2 = evaluate_randomness(key2)
+
+# Print the p-values
+print("P-value for Key 1:", p_value1)
+print("P-value for Key 2:", p_value2)
+
+# Example usage
+latitude_user1 =6.932803414512968
+longitude_user1 =79.84362736094005
+
+latitude_user2 =6.927464745645549
+longitude_user2 =79.84299971732389
 
 # Users within 2 km
-toleration_distance_km = 2.0
+toleration_distance_km = 1.0
 toleration_radius_degrees = calculate_tolerance_radius(toleration_distance_km)
 
 unique_key_user1 = generate_unique_key(latitude_user1, longitude_user1, toleration_distance=toleration_distance_km)
 unique_key_user2 = generate_unique_key(latitude_user2, longitude_user2, toleration_distance=toleration_distance_km)
 
 print(f"Toleration Distance Radius in Degrees: {toleration_radius_degrees}")
-print(f"User 1 Unique Key: {unique_key_user1}")
-print(f"User 2 Unique Key: {unique_key_user2}")
+print(f"Location 1: {latitude_user1},{longitude_user1}")
+print(f"Location 2: {latitude_user2},{longitude_user2}")
+
+print(f"Location 1 Key: {unique_key_user1}")
+print(f"Location 2 Key: {unique_key_user2}")
+print(f"Keys Match: {unique_key_user1 == unique_key_user2}")
+#check the randomness of the key
+p_value_user1 = evaluate_randomness(unique_key_user1)
+p_value_user2 = evaluate_randomness(unique_key_user2)
+print("A lower P-value indicates less randomness")
+print("P-value for User 1 Key:", p_value_user1)
+print("P-value for User 2 Key:", p_value_user2)
