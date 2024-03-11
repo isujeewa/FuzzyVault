@@ -1,6 +1,12 @@
 
 import json
 import numpy as np
+from RSAKeyPair import ExtendedKeyPairGenerator
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+
 from message import Message
 from steganography import hide_message, retrieve_message
 from imageGen import create_banner,combine_images,split_images
@@ -9,6 +15,25 @@ from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_
 from PIL import Image 
 import matplotlib.pyplot as plt
 import keyGeneration
+
+
+key_pair_generator = ExtendedKeyPairGenerator()
+key_pair_generator.save_key_pair()
+
+# Example usage:
+data_to_encrypt = "Sensitive information"
+
+# Encrypt the data using the public key
+encrypted_data = key_pair_generator.encrypt_data(data_to_encrypt, key_pair_generator.public_key.public_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PublicFormat.SubjectPublicKeyInfo
+))
+
+print(f"Encrypted data: {encrypted_data}")
+
+# Decrypt the data using the private key
+decrypted_data = key_pair_generator.decrypt_data(encrypted_data)
+print(f"Decrypted data: {decrypted_data}")
 
 
   # Capture facial features
