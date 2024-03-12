@@ -6,6 +6,7 @@ from RSAKeyPair import ExtendedKeyPairGenerator
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+import base64
 
 from message import Message
 from steganography import hide_message, retrieve_message
@@ -61,6 +62,7 @@ stored_encoding = face_encoding  # Store the initial facial encoding
 # Create a message object and serialize it to JSON
 msgobj = Message()
 msgobj.secret = password_string
+msgobj.hash= base64.b64encode(encrypted_data).decode('utf-8')
 msgorg = json.dumps(msgobj.__dict__)
 
 print("password_string:", password_string)
@@ -71,7 +73,7 @@ input("\nPress Enter to encrypt the image...")
 imageName = "tank.jpg"
 # Create a banner image with the message
 mainImage = Image.open(imageName)
-height = 200
+height = 500
 width =  mainImage.width
 text = msgorg
 # create the banner image print on the screen as log
@@ -112,6 +114,7 @@ print("message decording")
 
 # Decode the message from the encoded image
 decoded_msg = retrieve_message(img1)
+print("decoded message:", decoded_msg)
 
 msgextracted= json.loads(decoded_msg)
 
