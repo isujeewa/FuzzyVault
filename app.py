@@ -16,6 +16,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import keyGeneration
 
+from fuzzyVault import FuzzyVault
+
+
+
 
 key_pair_generator = ExtendedKeyPairGenerator()
 key_pair_generator.save_key_pair()
@@ -39,36 +43,21 @@ print(f"Decrypted data: {decrypted_data}")
   # Capture facial features
 face_encoding = capture_image_and_encoding("Registering your face. Press 'Enter' when ready...")
 
-# get the random password 
-random_password = keyGeneration.generate_random_password()
-
-# Use "12345" as the password for fuzzification
-stored_password = random_password
-# Convert the NumPy array to a list of strings
-password_list = stored_password.astype(str).tolist()
-
-# Convert the list to a plain string
-password_string = "".join(password_list)
-
-stored_encoding = face_encoding  # Store the initial facial encoding
-
-# Fuzzify facial features
-#fuzzified_values = fuzzify_features(face_encoding)
-
-#print("Fuzzified Values:", fuzzified_values)
+fuzzy_vault = FuzzyVault()
+fuzzy_vault.register_user(face_encoding)
 
 
 # Create a message object and serialize it to JSON
 msgobj = Message()
-msgobj.secret = password_string
+msgobj.secret = fuzzy_vault.get_key()
 msgorg = json.dumps(msgobj.__dict__)
 
-print("password_string:", password_string)
+print("password_string:", msgobj.secret )
 
 #wait until user press enter
 input("\nPress Enter to encrypt the image...")
 
-imageName = "tank.jpg"
+imageName = "vegi.png"
 # Create a banner image with the message
 mainImage = Image.open(imageName)
 height = 200
@@ -89,7 +78,7 @@ print("encording completed and saved as encoded.png")
 print("decoding the message from the encoded image")
 
 # encrypt the image
-encrypted_img = encrypt_image(mainImage, password_string)
+encrypted_img = encrypt_image(mainImage, msgobj.secret)
 
 #save the encrypted image
 encrypted_img.save("03_encrypted_img.jpg")
@@ -134,9 +123,11 @@ while verification_attempts < 5:
     verification_encoding = capture_image_and_encoding( "Capturing your face for verification. Press 'Enter' when ready...")
 
     # Verify the user and get the correct password
-    correct_password = verify_user_and_get_password(verification_encoding, stored_encoding, stored_password)
+    correct_password =  fuzzy_vault.verify_user_and_get_password(verification_encoding)
 
     stored_password2 = np.array(correct_password)
+    print("stored_password2:", stored_password2)
+
     # Convert the NumPy array to a list of strings
     password_list = stored_password2.astype(str).tolist()
 
