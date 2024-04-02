@@ -38,6 +38,7 @@ class FuzzyVault:
 
     def verify_user_and_get_password(self, user_encoding: np.ndarray) -> str:
         try:
+            print("Verifying user...")
             # Compare facial encodings for verification
             face_distance = face_recognition.face_distance([self._stored_face_encoding], user_encoding)[0]
             # You may need to adjust the threshold based on your specific use case

@@ -6,7 +6,7 @@ import skfuzzy as fuzz
 
 def capture_image_and_encoding(msg):
     print("Please look straight.")
-    input(msg)
+
 
     cap = cv2.VideoCapture(0)
 

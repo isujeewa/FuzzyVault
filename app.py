@@ -1,8 +1,8 @@
-
 import json
 import numpy as np
 from RSAKeyPair import ExtendedKeyPairGenerator
-
+import base64
+from io import BytesIO
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -12,11 +12,137 @@ from steganography import hide_message, retrieve_message
 from imageGen import create_banner,combine_images,split_images
 from encryption import encrypt_image, decrypt_image
 from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_get_password
+from dataService import insert_profile_data, get_profile_data_by_email,get_all_profiles
 from PIL import Image 
+from common import encode_object, decode_object
 import matplotlib.pyplot as plt
-import keyGeneration
-
+import keyGeneration 
+import uuid
 from fuzzyVault import FuzzyVault
+from facialFeatureExtractor import FacialFeatureExtractor
+
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
+import base64
+import cv2
+import numpy as np
+import re
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins='*')
+
+def decode_image_from_base64(base64_string):
+    image_data = base64.b64decode(base64_string.split(",")[1])
+    return cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@socketio.on('registration_com')
+def handle_video_and_task(data):
+    global values, user_actions, isResult
+    video_frame = data.get('videoFrame')
+    name = data.get('name')
+    email = data.get('email')
+    
+    if video_frame is None:
+        print("Error: 'videoFrame' not found in data dictionary.")
+        return
+
+    # Use regular expression to extract base64 text
+    base64_text = re.search(r"data:image/jpeg;base64,(.*)", video_frame).group(1)
+    image_data = base64.b64decode(base64_text)
+    
+    # Open the image using PIL (Python Imaging Library)
+    image = Image.open(BytesIO(image_data))
+
+    facialFeatureExtractor = FacialFeatureExtractor()
+    facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image)
+    if(facialFeatures is None):
+        print("Unable to detect a face. Please align your face with the camera.")
+        socketio.emit('result', {'status': 'false'})
+        return
+    else:
+        
+        fuzzy_vault = FuzzyVault()
+        fuzzy_vault.register_user(facialFeatures)
+        strend=encode_object(fuzzy_vault)
+
+        #get new guid
+         # Generate a UUID
+        new_uuid = uuid.uuid4()
+        # Convert the UUID to a string
+        new_uuid_str = str(new_uuid)
+        msg=insert_profile_data(new_uuid_str,name, email, strend)
+        socketio.emit('result', {'status': 'true','msg':msg})
+        # Show the image
+        image.show()
+
+@socketio.on('login_com')
+def handle_video_and_task(data):
+    global values, user_actions, isResult
+    video_frame = data.get('videoFrame')
+    email = data.get('email')
+    print("email:", email)
+    # Use regular expression to extract base64 text
+    base64_text = re.search(r"data:image/jpeg;base64,(.*)", video_frame).group(1)
+    image_data = base64.b64decode(base64_text)
+    profile_data=get_profile_data_by_email(email)
+    encodedVault =profile_data[3]
+    vault=decode_object(encodedVault)
+     # Open the image using PIL (Python Imaging Library)
+    image2 = Image.open(BytesIO(image_data))
+
+    facialFeatureExtractor = FacialFeatureExtractor()
+    facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image2)
+    loginResult=vault.verify_user_and_get_password(facialFeatures)
+    print("loginResult:", loginResult)
+    print("profile_data:", profile_data)
+    if(loginResult is None):
+        socketio.emit('result', {'status': 'false'})
+        return
+    socketio.emit('result', {'status': 'true','guid':profile_data[0], 'name':profile_data[1], 'email':profile_data[2]})
+    
+    if video_frame is None:
+        print("Error: 'videoFrame' not found in data dictionary.")
+        return
+    
+
+@socketio.on('user_list_com')
+def handle_video_and_task(data):
+    global values, user_actions, isResult
+ 
+    users = get_all_profiles()
+     
+    if(users is None):
+        socketio.emit('result', {'status': 'false'})
+        return
+    socketio.emit('result', {'status': 'true','users':users})
+
+@socketio.on('send_message_com') 
+def handle_video_and_task(data):
+    global values, user_actions, isResult   
+    senderId = data.get('senderID')
+    receiverId = data.get('receiverID')
+    message = data.get('message')
+    time = data.get('time')
+    chanel_sender = f"{senderId}_{receiverId}"
+    chanel_receiver = f"{receiverId}_{senderId}"
+    print("chanel_sender:", chanel_sender)
+    print("chanel_receiver:", chanel_receiver)
+    print("message:", message)
+    socketio.emit( chanel_sender, {'status': 'true', 'message':message, 'time':time ,'senderID':senderId, 'receiverID':receiverId})
+    socketio.emit( chanel_receiver, {'status': 'true', 'message':message, 'time':time,'senderID':senderId, 'receiverID':receiverId})
+
+   
+
+    
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
+    #log
+    print("Server started")
 
 
 
@@ -43,13 +169,12 @@ print(f"Decrypted data: {decrypted_data}")
   # Capture facial features
 face_encoding = capture_image_and_encoding("Registering your face. Press 'Enter' when ready...")
 
-fuzzy_vault = FuzzyVault()
-fuzzy_vault.register_user(face_encoding)
+
 
 
 # Create a message object and serialize it to JSON
 msgobj = Message()
-msgobj.secret = fuzzy_vault.get_key()
+msgobj.secret = "fuzzy_vault.get_key()"
 msgorg = json.dumps(msgobj.__dict__)
 
 print("password_string:", msgobj.secret )
@@ -58,6 +183,7 @@ print("password_string:", msgobj.secret )
 input("\nPress Enter to encrypt the image...")
 
 imageName = "vegi.png"
+
 # Create a banner image with the message
 mainImage = Image.open(imageName)
 height = 200
@@ -108,67 +234,18 @@ msgobjRecovered = Message()
 msgobjRecovered.__dict__ = msgextracted
 
 
+
+def view_base64_image(base64_string):
+    # Decode the Base64 string
+    image_data = base64.b64decode(base64_string)
+    
+    # Open the image using PIL (Python Imaging Library)
+    image = Image.open(BytesIO(image_data))
+    
+    # Show the image
+    image.show()
  
-# Assuming the necessary functions and variables are defined above
-# ...
 
-# Counter to limit the loop to 5 times
-verification_attempts = 0
-
-while verification_attempts < 5:
-    # Allow the user to capture another snapshot for verification
-    input("\nPress Enter to capture another snapshot for verification...")
-
-    # Capture the second snapshot for verification
-    verification_encoding = capture_image_and_encoding( "Capturing your face for verification. Press 'Enter' when ready...")
-
-    # Verify the user and get the correct password
-    correct_password =  fuzzy_vault.verify_user_and_get_password(verification_encoding)
-
-    stored_password2 = np.array(correct_password)
-    print("stored_password2:", stored_password2)
-
-    # Convert the NumPy array to a list of strings
-    password_list = stored_password2.astype(str).tolist()
-
-    # Convert the list to a plain string
-    password_string = "".join(password_list)
-
-    if correct_password is not None and "-1":
-        if password_string == msgobjRecovered.secret:
-            print("User Verified! Correct Password:", correct_password)
-
-            # Decrypt the image
-            decrypted_img = decrypt_image(img2, msgobjRecovered.secret)
-
-            # Save and display the decrypted image
-            decrypted_img.save(f"{verification_attempts + 1}_decrypted_img.jpg")
-            decrypted_img.show()
-
-            # Log the decoded message
-            print(decoded_msg)
-            print("Message decoding completed")
-
-            # Increment the verification attempts counter
-            verification_attempts =6
-
-        elif correct_password ==  "-1":
-            print("Unable to detect a face. Please align your face with the camera.")
-            # Increment the verification attempts counter
-            verification_attempts += 1
-
-        else:
-            print("User Verification Failed! Incorrect Password.")
-            # Increment the verification attempts counter
-            verification_attempts += 1
-
-    else:
-        print("User Verification Failed! Incorrect Password.")
-         # Increment the verification attempts counter
-        verification_attempts += 1
-
-# End of the loop
-print("Verification attempts limit reached.")
 
 
 

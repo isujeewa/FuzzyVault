@@ -2,6 +2,8 @@ import tkinter as tk
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from message import Message
+import numpy as np
+import base64
 
 def create_banner(width, height, text):
     # Create a Tkinter window
@@ -80,5 +82,34 @@ def split_images(combined_image):
 
 
     return split_image1, split_image2
+
+
+def encode_ndarray(arr):
+    """
+    Encode an NDArray to Base64.
+
+    Parameters:
+    arr (numpy.ndarray): The NDArray to encode.
+
+    Returns:
+    str: Base64 encoded string.
+    """
+    arr_bytes = arr.tobytes()
+    encoded_data = base64.b64encode(arr_bytes)
+    return encoded_data.decode('utf-8')
+
+def decode_ndarray(encoded_data):
+    """
+    Decode a Base64 encoded string to NDArray.
+
+    Parameters:
+    encoded_data (str): Base64 encoded string.
+
+    Returns:
+    numpy.ndarray: Decoded NDArray.
+    """
+    decoded_bytes = base64.b64decode(encoded_data)
+    arr = np.frombuffer(decoded_bytes, dtype=np.int32)
+    return arr.reshape((-1, len(arr) // arr.shape[1]))
 
 
