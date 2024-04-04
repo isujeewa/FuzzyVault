@@ -55,6 +55,32 @@ def get_profile_data_by_email(email):
                 cur.close()
                 conn.close()
 
+def get_profile_data_by_guid(guid):
+    conn = connect_to_database()
+    if conn is not None:
+        try:
+            cur = conn.cursor()
+
+            # Execute SQL query to fetch record by GUID
+            cur.execute("SELECT * FROM ProfileMaster WHERE guid = %s", (guid,))
+            profile_data = cur.fetchone()
+            
+            if profile_data:
+                print("Profile data found:")
+      
+                return profile_data
+            else:
+                print("No profile data found for GUID:", guid)
+                return None
+
+        except (Exception, psycopg2.Error) as error:
+            print("Error while retrieving profile data:", error)
+        finally:
+            if conn:
+                cur.close()
+                conn.close()
+
+
 def get_all_profiles():
     conn = connect_to_database()
     if conn is not None:

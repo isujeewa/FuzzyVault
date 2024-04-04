@@ -42,7 +42,7 @@ class FuzzyVault:
             # Compare facial encodings for verification
             face_distance = face_recognition.face_distance([self._stored_face_encoding], user_encoding)[0]
             # You may need to adjust the threshold based on your specific use case
-            threshold = 0.4
+            threshold = 0.6
             if face_distance < threshold:
                 return self._private_secret
             else:
