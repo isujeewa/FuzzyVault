@@ -8,3 +8,4 @@ class Message:
         self.secret = 0b11011011
         self.height1 = 200
         self.height2 = 200
+        self.authOption = 0

@@ -33,7 +33,7 @@ class FacialFeatureExtractor:
         print("Please look straight.")
    
  
-        reduced_image = self.reduce_ambient_light(image, reduction_factor=0.55)
+        reduced_image = self.reduce_ambient_light(image, reduction_factor=0.4)
         # Capture the image
         image_np = np.array(reduced_image)  # Use reduced_image here
         # Convert captured frames to RGB for face recognition
