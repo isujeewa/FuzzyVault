@@ -64,7 +64,7 @@ def handle_video_and_task(data):
     facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image)
     if(facialFeatures is None):
         print("Unable to detect a face. Please align your face with the camera.")
-        socketio.emit('result', {'status': 'false'})
+        socketio.emit('result_registration', {'status': 'false'})
         return
     else:
         
@@ -78,7 +78,7 @@ def handle_video_and_task(data):
         # Convert the UUID to a string
         new_uuid_str = str(new_uuid)
         msg=insert_profile_data(new_uuid_str,name, email, strend)
-        socketio.emit('result', {'status': 'true','msg':msg})
+        socketio.emit('result_registration', {'status': 'true','msg':msg})
         # Show the image
         image.show()
 
@@ -92,6 +92,9 @@ def handle_video_and_task(data):
     base64_text = re.search(r"data:image/jpeg;base64,(.*)", video_frame).group(1)
     image_data = base64.b64decode(base64_text)
     profile_data=get_profile_data_by_email(email)
+    if(profile_data is None):
+        socketio.emit('result_login', {'status': 'false'})
+        return
     encodedVault =profile_data[3]
     vault=decode_object(encodedVault)
      # Open the image using PIL (Python Imaging Library)
@@ -104,9 +107,9 @@ def handle_video_and_task(data):
     print("loginResult:", loginResult)
     print("profile_data:", profile_data)
     if(loginResult is None):
-        socketio.emit('result', {'status': 'false'})
+        socketio.emit('result_login', {'status': 'false'})
         return
-    socketio.emit('result', {'status': 'true','guid':profile_data[0], 'name':profile_data[1], 'email':profile_data[2]})
+    socketio.emit('result_login', {'status': 'true','guid':profile_data[0], 'name':profile_data[1], 'email':profile_data[2]})
     
     if video_frame is None:
         print("Error: 'videoFrame' not found in data dictionary.")
@@ -163,7 +166,6 @@ def handle_video_and_task(data):
     #base64_text = re.search(r"data:image/png;base64,(.*)", file).group(1)
     #split by coma
     if type =='0':
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>opeiton text message")
         socketio.emit( chanel_sender, {'status': 'true', 'message':message, 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':'','encryptionOption':'0'})
         socketio.emit( chanel_receiver, {'status': 'true', 'message':message, 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':'','encryptionOption':'0'})
     if type =='1':
@@ -223,7 +225,6 @@ def handle_video_and_task(data):
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
             top_image_section = Get_Top_image(image_bysender, 200)
             decoded_msg = retrieve_message(top_image_section)
-            print("msgextracted>>>>>>>>>>>:", decoded_msg)
 
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
@@ -320,7 +321,6 @@ def handle_video_and_task(data):
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
             top_image_section = Get_Top_image(image_bysender, 200)
             decoded_msg = retrieve_message(top_image_section)
-            print("msgextracted>>>>>>>>>>>:", decoded_msg)
 
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
