@@ -157,13 +157,15 @@ def handle_video_and_task(data):
     time = data.get('time')
     longitude = data.get('longitude')
     latitude = data.get('latitude')
+    distance = data.get('distance')
     chanel_sender = f"{senderId}_{receiverId}"
     chanel_receiver = f"{receiverId}_{senderId}"
     print("chanel_sender:", chanel_sender)
     print("chanel_receiver:", chanel_receiver)
     print("encryptionOption:", encryptionOption)
-    print("longitude:", longitude)
-    print("latitude:", latitude)
+    print("longitude--:", longitude)
+    print("latitude--:", latitude)
+    print("distance--:", distance)
     if message is None:
         message=""
 
@@ -239,7 +241,7 @@ def handle_video_and_task(data):
         elif encryptionOption =='2' : 
             print("image received")
             print(latitude, longitude)
-            key_receiver=generate_unique_key(float(latitude), float(longitude), toleration_distance=2.0)
+            key_receiver=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(distance))
             print("key_receiver:", key_receiver)
             image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
@@ -257,6 +259,7 @@ def handle_video_and_task(data):
             msgobj.height1 = banner_img.height
             msgobj.height2 = encrypted_img2.height
             msgobj.authOption = 2
+            msgobj.distance = distance
             msgorg = json.dumps(msgobj.__dict__)
         
             print("message created ")
@@ -286,7 +289,7 @@ def handle_video_and_task(data):
             encodedVault_receiver =profile_data_receiver[3]
             vault_receiver=decode_object(encodedVault_receiver)   
             key_receiver = vault_receiver.get_key()
-            key_receiver_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=2.0)
+            key_receiver_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(distance))
             combined_key=key_receiver+key_receiver_2
             last_8_digit=key_receiver[-4:]+key_receiver_2[-4:]
             print("vault created")
@@ -306,6 +309,7 @@ def handle_video_and_task(data):
             msgobj.height1 = banner_img.height
             msgobj.height2 = encrypted_img.height
             msgobj.authOption = 3
+            msgobj.distance = distance
             msgorg = json.dumps(msgobj.__dict__)
         
             print("message created ")
@@ -389,14 +393,15 @@ def handle_video_and_task(data):
         latitude = data.get('latitude')
         print("longitude:", longitude)
         print("latitude:", latitude)
-        loginResult=generate_unique_key(float(latitude), float(longitude), toleration_distance=2.0)
+        print("distance:", msgextracted["distance"])
+        loginResult=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(msgextracted["distance"]))
         print("loginResult:", loginResult)
         key_sender = loginResult
         print("sec:", msgextracted["secret"])
         print("key_sender[-4]:", key_sender[-4:])
         if msgextracted["secret"] !=  key_sender[-4:] :
             socketio.emit(senderId, {'file':'','status': 'false'})
-            print("Error: face mismatch.")
+            print("Error: Location mismatch.")
             return
     elif encryptionOption =='3' :
         video_frame = data.get('videoFrame')
@@ -425,7 +430,8 @@ def handle_video_and_task(data):
         latitude = data.get('latitude')
         print("longitude:", longitude)
         print("latitude:", latitude)
-        loginResult_2=generate_unique_key(float(latitude),float( longitude), toleration_distance=2.0)
+        print("distance:", msgextracted["distance"])
+        loginResult_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(msgextracted["distance"]))
         org_location_key_part= loginResult_2[-4:]
         org_face_key_part= loginResult_1[-4:]
         key_sender = loginResult_1+loginResult_2

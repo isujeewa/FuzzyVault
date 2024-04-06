@@ -9,3 +9,4 @@ class Message:
         self.height1 = 200
         self.height2 = 200
         self.authOption = 0
+        self.distance = 2

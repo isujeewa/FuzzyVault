@@ -7,6 +7,10 @@ def calculate_tolerance_radius(toleration_distance_km):
     return toleration_radius_degrees
 
 def generate_unique_key(latitude, longitude, toleration_distance=2.0):
+    print("generate_unique_key....")
+    print("latitude",latitude)
+    print("longitude",longitude)
+    print("toleration_distance",toleration_distance)
     # Convert toleration_distance to degrees
     toleration_radius_degrees = calculate_tolerance_radius(toleration_distance)
 
@@ -19,6 +23,8 @@ def generate_unique_key(latitude, longitude, toleration_distance=2.0):
 
     # Use hashlib to generate a unique key
     unique_key = hashlib.sha256(combined_data.encode()).hexdigest()
+
+    print("generate_unique_key end....")
 
     return unique_key
 
@@ -46,14 +52,14 @@ print("P-value for Key 1:", p_value1)
 print("P-value for Key 2:", p_value2)
 
 # Example usage
-latitude_user1 =6.932803414512968
-longitude_user1 =79.84362736094005
+latitude_user1 =6.848512
+longitude_user1 =79.8476
 
-latitude_user2 =6.927464745645549
-longitude_user2 =79.84299971732389
+latitude_user2 =6.848512
+longitude_user2 =79.8818304
 
 # Users within 2 km
-toleration_distance_km = 1.0
+toleration_distance_km = 3.0
 toleration_radius_degrees = calculate_tolerance_radius(toleration_distance_km)
 
 unique_key_user1 = generate_unique_key(latitude_user1, longitude_user1, toleration_distance=toleration_distance_km)
