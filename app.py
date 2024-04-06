@@ -146,7 +146,8 @@ def handle_video_and_task(data):
 
 @socketio.on('send_message_com') 
 def handle_video_and_task(data):
-    global values, user_actions, isResult   
+    global values, user_actions, isResult
+    print("-----------------------Send -------------------")   
     senderId = data.get('senderID')
     receiverId = data.get('receiverID')
     message = data.get('message')
@@ -161,6 +162,10 @@ def handle_video_and_task(data):
     print("chanel_sender:", chanel_sender)
     print("chanel_receiver:", chanel_receiver)
     print("encryptionOption:", encryptionOption)
+    print("longitude:", longitude)
+    print("latitude:", latitude)
+    if message is None:
+        message=""
 
     print("type:", type)
     #base64_text = re.search(r"data:image/png;base64,(.*)", file).group(1)
@@ -235,6 +240,7 @@ def handle_video_and_task(data):
             print("image received")
             print(latitude, longitude)
             key_receiver=generate_unique_key(float(latitude), float(longitude), toleration_distance=2.0)
+            print("key_receiver:", key_receiver)
             image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
             encrypted_img2 = encrypt_image(image_bysender, key_receiver)
@@ -287,7 +293,7 @@ def handle_video_and_task(data):
 
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName)
+            banner_img=create_banner(width, height, fileName ,message)
             print(image_bysender.filename)
             print("banner_img created")
             # Create a message object and serialize it to JSON
@@ -327,12 +333,13 @@ def handle_video_and_task(data):
             print("final url created for bio encrypted image")
             socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':encryptionOption})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data_uri,'encryptionOption':encryptionOption})
-
+    print("-----------------------Send End-------------------")  
 
 
 @socketio.on('decrypt_message_com') 
 def handle_video_and_task(data):
     global values, user_actions, isResult   
+    print("-----------------------decrypt -------------------")
     encryptionOption = data.get('encryptionOption')
     senderId = data.get('senderID')
 
@@ -382,14 +389,14 @@ def handle_video_and_task(data):
         latitude = data.get('latitude')
         print("longitude:", longitude)
         print("latitude:", latitude)
-        loginResult=generate_unique_key(longitude, latitude, toleration_distance=2.0)
+        loginResult=generate_unique_key(float(latitude), float(longitude), toleration_distance=2.0)
         print("loginResult:", loginResult)
         key_sender = loginResult
         print("sec:", msgextracted["secret"])
         print("key_sender[-4]:", key_sender[-4:])
         if msgextracted["secret"] !=  key_sender[-4:] :
             socketio.emit(senderId, {'file':'','status': 'false'})
-            print("Error: Unable to retrieve the message.")
+            print("Error: face mismatch.")
             return
     elif encryptionOption =='3' :
         video_frame = data.get('videoFrame')
@@ -418,7 +425,7 @@ def handle_video_and_task(data):
         latitude = data.get('latitude')
         print("longitude:", longitude)
         print("latitude:", latitude)
-        loginResult_2=generate_unique_key(longitude, latitude, toleration_distance=2.0)
+        loginResult_2=generate_unique_key(float(latitude),float( longitude), toleration_distance=2.0)
         org_location_key_part= loginResult_2[-4:]
         org_face_key_part= loginResult_1[-4:]
         key_sender = loginResult_1+loginResult_2
@@ -428,12 +435,12 @@ def handle_video_and_task(data):
         
         if key_part != org_location_key_part :
             socketio.emit(senderId, {'file':'L','status': 'false'})
-            print("Error: Unable to retrieve the message.")
+            print("Error: Location mismatch.")
             return 
         key_part =msgextracted["secret"][:4]
         if key_part != org_face_key_part :
             socketio.emit(senderId, {'file':'F','status': 'false'})
-            print("Error: Unable to retrieve the message.")
+            print("Error: face mismatch.")
             return 
     
     msgextracted= json.loads(decoded_msg)
@@ -450,6 +457,7 @@ def handle_video_and_task(data):
     # Add data URI scheme to the base64 string
     data_uri = f"data:image/{image_data_base64_bysender_type};base64,{decrypted_img_base64}"
     socketio.emit(senderId, {'file':data_uri,'status': 'true'})
+    print("-----------------------decrypt End-------------------")
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
