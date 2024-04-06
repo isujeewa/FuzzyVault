@@ -9,7 +9,14 @@ from tkinter import Tk, Canvas
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 
-def create_banner(width, height, text):
+from tkinter import Tk, Canvas
+from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
+
+def create_banner(width, height, text, message):
+    # Truncate message if its length exceeds 100 characters
+    message = message[:100]
+
     # Create a Tkinter window
     root = Tk()
     root.geometry(f"{width}x{height}")
@@ -31,6 +38,10 @@ def create_banner(width, height, text):
     second_line_text = current_time.strftime("%Y-%m-%d %H:%M:%S")
     second_line_id = canvas.create_text(20, height // 2 + 30, anchor='w', text=second_line_text, font=font, fill=brush)
 
+    # Draw the message on the third line
+    third_line_text = message
+    third_line_id = canvas.create_text(20, height // 2 + 60, anchor='w', text=third_line_text, font=font, fill=brush)
+
     # Run the Tkinter main loop
     root.update_idletasks()
     root.update()
@@ -40,8 +51,10 @@ def create_banner(width, height, text):
     draw = ImageDraw.Draw(image)
     draw.text((20, height // 2), text, font=ImageFont.truetype("arial.ttf", 24), fill='black')
     draw.text((20, height // 2 + 30), second_line_text, font=ImageFont.truetype("arial.ttf", 12), fill='black')
+    draw.text((20, height // 2 + 60), third_line_text, font=ImageFont.truetype("arial.ttf", 12), fill='black')
     
     return image
+
 
 # combine two images into one and have a option to split them back with the same bit pattern
 

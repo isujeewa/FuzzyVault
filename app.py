@@ -191,7 +191,7 @@ def handle_video_and_task(data):
 
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName)
+            banner_img=create_banner(width, height, fileName, message)
             print(image_bysender.filename)
             print("banner_img created")
             # Create a message object and serialize it to JSON
@@ -240,7 +240,7 @@ def handle_video_and_task(data):
             encrypted_img2 = encrypt_image(image_bysender, key_receiver)
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName)
+            banner_img=create_banner(width, height, fileName, message)
             print(image_bysender.filename)
             print("banner_img created")
   
@@ -362,6 +362,10 @@ def handle_video_and_task(data):
         print("videor frame captured")
         facialFeatureExtractor = FacialFeatureExtractor()
         facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image2)
+        if(facialFeatures is None):
+            print("loginResult:", facialFeatures)
+            socketio.emit(senderId, {'file':'F','status': 'false'})
+            return
         print("face based:")
         profile_data_sender=get_profile_data_by_guid(senderId)
         encodedVault_sender=profile_data_sender[3]
@@ -396,6 +400,11 @@ def handle_video_and_task(data):
         print("videor frame captured")
         facialFeatureExtractor = FacialFeatureExtractor()
         facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image2)
+        if(facialFeatures is None):
+            print("loginResult:", facialFeatures)
+            socketio.emit(senderId, {'file':'F','status': 'false'})
+            return
+        
         print("face based:")
         profile_data_sender=get_profile_data_by_guid(senderId)
         encodedVault_sender=profile_data_sender[3]
