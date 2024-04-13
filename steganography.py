@@ -67,86 +67,65 @@ def retrieve_message(stego_image):
 
     return ''.join(message_chars)
 
-
-from PIL import Image
-
 def hide_messagev2(original_image, message):
     stego_image = original_image.copy()
 
-    message_length = len(message)
+    # Convert the message to binary
+    binary_message = ''.join(format(ord(char), '08b') for char in message)
 
-    # Embed the message length in the first few pixels
-    message_length_bytes = message_length.to_bytes(4, 'big')  # Convert to 4-byte big-endian integer
-    for i in range(4):
-        stego_image.putpixel((0, i), (message_length_bytes[i], *stego_image.getpixel((0, i))[1:]))
+    # Add a delimiter to mark the end of the message
+    binary_message += '1111111111111110'
 
-    pixel_index = 4  # Start from the 5th pixel
+    pixel_index = 0
+    width, height = original_image.size
 
-    # Embed each character of the message in the pixel values
-    for char in message:
-        ascii_value = ord(char)
+    for y in range(height):
+        for x in range(width):
+            pixel = list(original_image.getpixel((x, y)))
 
-        # Embed each byte of the ASCII value in the pixel values
-        for i in range(3):  # Embed in R, G, B components
-            pixel = stego_image.getpixel((pixel_index % stego_image.width, pixel_index // stego_image.width))
+            # Embed the message in the LSB of each color channel
+            for i in range(3):
+                if pixel_index < len(binary_message):
+                    # Clear the least significant bit
+                    pixel[i] &= 0xFE
+                    # Embed the bit from the message
+                    pixel[i] |= int(binary_message[pixel_index])
+                    pixel_index += 1
 
-            # Clear the least significant bit
-            new_component = pixel[i] & 0xFE
+            stego_image.putpixel((x, y), tuple(pixel))
 
-            # Embed the current byte
-            new_component |= (ascii_value >> (i * 8)) & 0x01
-
-            # Update the pixel in the stego image
-            new_pixel = list(pixel)
-            new_pixel[i] = new_component
-            stego_image.putpixel((pixel_index % stego_image.width, pixel_index // stego_image.width), tuple(new_pixel))
-
-            pixel_index += 1
+            if pixel_index >= len(binary_message):
+                return stego_image
 
     return stego_image
 
-def retrieve_messagev2(stego_image):
-    pixel_index = 4  # Start from the 5th pixel
+def extract_messagev2(stego_image):
+    binary_message = ''
+    width, height = stego_image.size
 
-    # Retrieve the message length from the first few pixels
-    message_length_bytes = [stego_image.getpixel((0, i))[0] for i in range(4)]
-    message_length = int.from_bytes(message_length_bytes, 'big')
+    for y in range(height):
+        for x in range(width):
+            pixel = stego_image.getpixel((x, y))
 
-    message_chars = []
+            # Extract the LSB from each color channel
+            for i in range(3):
+                binary_message += str(pixel[i] & 0x01)
 
-    # Retrieve each character of the message from the pixel values
-    for _ in range(message_length):
-        ascii_value = 0
+    # Find the index of the delimiter marking the end of the message
+    delimiter_index = binary_message.find('1111111111111110')
 
-        # Retrieve each byte of the ASCII value from the pixel values
-        for i in range(3):  # Extract from R, G, B components
-            pixel = stego_image.getpixel((pixel_index % stego_image.width, pixel_index // stego_image.width))
+    # Extract the message bits and convert back to characters
+    message_bits = binary_message[:delimiter_index]
+    message = ''.join(chr(int(message_bits[i:i+8], 2)) for i in range(0, len(message_bits), 8))
 
-            # Extract the least significant bit
-            lsb = pixel[i] & 0x01
-
-            # Combine the bits to form the ASCII value
-            ascii_value |= lsb << (i * 8)
-
-            pixel_index += 1
-
-        message_chars.append(chr(ascii_value))
-
-    return ''.join(message_chars)
+    return message
 
 
-# Example usage:
-# original_image = Image.open("example_image.png")
-# stego_image = hide_message(original_image, "Your message here")
-# stego_image.save("stego_image.png")
-# retrieved_message = retrieve_message(stego_image)
-# print("Retrieved message:", retrieved_message)
 
-
-# Example usage:
-# original_image = Image.open("path/to/your/image.png")
-# hidden_message = "Your secret message"
-# stego_image = hide_message(original_image, hidden_message)
-# stego_image.show()
-# retrieved_message = retrieve_message(stego_image)
-# print(retrieved_message)
+original_image = Image.open("demo02.jpg")
+message = "Hello, this is a hidden message!"
+stego_image = hide_messagev2(original_image, message)
+stego_image.save("demo02_1.jpg")
+stego_image = Image.open("demo02_1.jpg")
+extracted_message = extract_messagev2(stego_image)
+print("Extracted message:", extracted_message)

@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from location import generate_unique_key
 from message import Message
 from steganography import hide_message, retrieve_message
-from imageGen import Get_Top_image, create_banner,combine_images,split_images
+from imageGen import Get_Top_image, calculate_text_width,   create_banner,combine_images, create_image,split_images
 from encryption import encrypt_image, decrypt_image
 from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_get_password
 from dataService import insert_profile_data, get_profile_data_by_email,get_all_profiles,get_profile_data_by_guid
@@ -32,7 +32,7 @@ import numpy as np
 import re
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins='*',max_http_buffer_size=1e7)
+socketio = SocketIO(app, cors_allowed_origins='*',max_http_buffer_size=2e7)
 
 def decode_image_from_base64(base64_string):
     image_data = base64.b64decode(base64_string.split(",")[1])
@@ -80,7 +80,6 @@ def handle_video_and_task(data):
         msg=insert_profile_data(new_uuid_str,name, email, strend)
         socketio.emit('result_registration', {'status': 'true','msg':msg})
         # Show the image
-        image.show()
 
 @socketio.on('login_com')
 def handle_video_and_task(data):
@@ -158,6 +157,7 @@ def handle_video_and_task(data):
     longitude = data.get('longitude')
     latitude = data.get('latitude')
     distance = data.get('distance')
+    encryptTextMessage = data.get('encryptTextMessage')
     chanel_sender = f"{senderId}_{receiverId}"
     chanel_receiver = f"{receiverId}_{senderId}"
     print("chanel_sender:", chanel_sender)
@@ -166,6 +166,7 @@ def handle_video_and_task(data):
     print("longitude--:", longitude)
     print("latitude--:", latitude)
     print("distance--:", distance)
+    print("encryptTextMessage" ,encryptTextMessage)
     if message is None:
         message=""
 
@@ -177,18 +178,40 @@ def handle_video_and_task(data):
         socketio.emit( chanel_receiver, {'status': 'true', 'message':message, 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':'','encryptionOption':'0'})
     if type =='1':
         #cooment image received
-        image_data_base64_bysender = data['file'].split(',')[1]  # remove the 'data:image/png;base64,' prefix
-        image_data_base64_bysender_type = data['file'].split(',')[0].split(';')[0].split('/')[-1]
-        if encryptionOption =='0' :
+        image_data_base64_bysender= None
+        image_data_base64_bysender_type= None
+        image_data_bytes_bysender= None
+        image_bysender= None
+        imageFile= None
+        banner_text = None
+        print("encryptTextMessage" ,encryptTextMessage)
+        if(encryptTextMessage != True):
+            print("encryptTextMessage")
+            image_data_base64_bysender = data['file'].split(',')[1]  # remove the 'data:image/png;base64,' prefix
+            image_data_base64_bysender_type = data['file'].split(',')[0].split(';')[0].split('/')[-1]
+            imageFile = data['file']
+            print("image received")
+            image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
+            image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
+            banner_text = message
+        else:
+            widthText = calculate_text_width(message, 12)
+            image_bysender =create_image(widthText, 200, message)
+            fileName="Secret Message"
+            image_data_base64_bysender_type="png"
+            message_img_byte_array = io.BytesIO()
+            image_bysender.save(message_img_byte_array, format=image_data_base64_bysender_type)
+            encoded_img_bytes = message_img_byte_array.getvalue()
+            message_img_base64 = base64.b64encode(encoded_img_bytes).decode('utf-8')
+            imageFile = f"data:image/{image_data_base64_bysender_type};base64,{message_img_base64}"
+            banner_text=" "
+        if encryptionOption =='0' and encryptTextMessage != True:
             socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':'0'})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data['file'],'encryptionOption':'0'})
             return
         elif encryptionOption =='1' :
 
-            print("image received")
-            
-            image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
-            image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
+
             print("processed the image")
             profile_data_receiver=get_profile_data_by_guid(receiverId)
             encodedVault_receiver =profile_data_receiver[3]
@@ -198,8 +221,12 @@ def handle_video_and_task(data):
 
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName, message)
-            print(image_bysender.filename)
+            print("width:", width)
+            print("height:", height)
+            print("fileName:", fileName)
+            print("message:", message)
+            banner_img=create_banner(width, height, fileName, banner_text)
+      
             print("banner_img created")
             # Create a message object and serialize it to JSON
             encrypted_img = encrypt_image(image_bysender, key_receiver)
@@ -236,7 +263,7 @@ def handle_video_and_task(data):
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
             print("final url created for bio encrypted image")
-            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':encryptionOption})
+            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':imageFile,'encryptionOption':encryptionOption})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data_uri,'encryptionOption':encryptionOption})
         elif encryptionOption =='2' : 
             print("image received")
@@ -248,7 +275,7 @@ def handle_video_and_task(data):
             encrypted_img2 = encrypt_image(image_bysender, key_receiver)
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName, message)
+            banner_img=create_banner(width, height, fileName, banner_text)
             print(image_bysender.filename)
             print("banner_img created")
   
@@ -277,14 +304,11 @@ def handle_video_and_task(data):
             encoded_img_bytes_loc = combined_img_byte_array_loc.getvalue()
             combined_img_base64_loc = base64.b64encode(encoded_img_bytes_loc).decode('utf-8')
             data_uri_loc = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64_loc}"
-            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':encryptionOption})
+            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':imageFile,'encryptionOption':encryptionOption})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data_uri_loc,'encryptionOption':encryptionOption})
         elif encryptionOption =='3' :
             print("image received option:3")
-            
-            image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
-            image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
-            print("processed the image")
+
             profile_data_receiver=get_profile_data_by_guid(receiverId)
             encodedVault_receiver =profile_data_receiver[3]
             vault_receiver=decode_object(encodedVault_receiver)   
@@ -296,8 +320,7 @@ def handle_video_and_task(data):
 
             height = 200
             width =  image_bysender.width
-            banner_img=create_banner(width, height, fileName ,message)
-            print(image_bysender.filename)
+            banner_img=create_banner(width, height, fileName ,banner_text)
             print("banner_img created")
             # Create a message object and serialize it to JSON
             encrypted_img = encrypt_image(image_bysender, combined_key)
@@ -335,7 +358,7 @@ def handle_video_and_task(data):
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
             print("final url created for bio encrypted image")
-            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':encryptionOption})
+            socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':imageFile,'encryptionOption':encryptionOption})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data_uri,'encryptionOption':encryptionOption})
     print("-----------------------Send End-------------------")  
 

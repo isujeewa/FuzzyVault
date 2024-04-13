@@ -152,8 +152,10 @@ def compare_images(image1_path, image2_path):
 
 # Example usage:
 image = "tank"
-image1_path = f"result/{image}_decrypted_img.jpg"
-image2_path = f"result/{image}.png"
+path01= "Testing\\01_org_img.png"
+path02= "Testing\\07decrypted_img.png"
+image1_path = f"{path01}"
+image2_path = f"{path02}"
 
 similarity_percentage = compare_images(image1_path, image2_path)
 print("Overall Similarity Percentage:", similarity_percentage)

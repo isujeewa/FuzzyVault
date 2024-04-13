@@ -13,6 +13,17 @@ from tkinter import Tk, Canvas
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
+def calculate_text_width(text, font_size):
+    #get char letngth
+    char_length = len(text)
+    #get char width
+    char_width = 10
+    tlenth = char_length * char_width
+    if tlenth < 200:
+        return 200
+
+    return tlenth
+
 def create_banner(width, height, text, message):
     # Truncate message if its length exceeds 100 characters
     message = message[:100]
@@ -57,6 +68,27 @@ def create_banner(width, height, text, message):
 
 
 # combine two images into one and have a option to split them back with the same bit pattern
+def create_image(width, height, message):
+    # Truncate message if its length exceeds 100 characters
+    message = message[:100]
+
+    # Create a new PIL image
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+
+    # Define font and brush for the text
+    secondary_text_font = ImageFont.truetype("arial.ttf", 12)
+    brush = 'black'
+
+    # Draw the current UTC time on the first line
+    current_time = datetime.now()
+    first_line_text = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    draw.text((20, height // 2), first_line_text, font=secondary_text_font, fill=brush)
+
+    # Draw the message on the second line
+    draw.text((20, height // 2 + 30), message, font=secondary_text_font, fill=brush)
+
+    return image
 
 
 def combine_images(image1, image2):
