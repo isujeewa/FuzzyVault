@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from location import generate_unique_key
 from message import Message
 from steganography import hide_message, retrieve_message
+from steganographyv4 import encode, decode
 from imageGen import Get_Top_image, calculate_text_width,   create_banner,combine_images, create_image,split_images
 from encryption import encrypt_image, decrypt_image
 from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_get_password
@@ -174,6 +175,7 @@ def handle_video_and_task(data):
     #base64_text = re.search(r"data:image/png;base64,(.*)", file).group(1)
     #split by coma
     if type =='0':
+        
         socketio.emit( chanel_sender, {'status': 'true', 'message':message, 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':'','encryptionOption':'0'})
         socketio.emit( chanel_receiver, {'status': 'true', 'message':message, 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':'','encryptionOption':'0'})
     if type =='1':
@@ -206,6 +208,7 @@ def handle_video_and_task(data):
             imageFile = f"data:image/{image_data_base64_bysender_type};base64,{message_img_base64}"
             banner_text=" "
         if encryptionOption =='0' and encryptTextMessage != True:
+            #TODO handle encrypted image
             socketio.emit( chanel_sender, {'status': 'true', 'message':'', 'time':time ,'senderID':senderId, 'receiverID':receiverId, 'file':data['file'],'encryptionOption':'0'})
             socketio.emit( chanel_receiver, {'status': 'true', 'message':'', 'time':time,'senderID':senderId, 'receiverID':receiverId,'file':data['file'],'encryptionOption':'0'})
             return
@@ -241,7 +244,8 @@ def handle_video_and_task(data):
             msgorg = json.dumps(msgobj.__dict__)
         
             print("message created ")
-            encoded_img = hide_message(banner_img, msgorg)
+            #encoded_img = hide_message(banner_img, msgorg)
+            encoded_img = encode(banner_img, msgorg)
             print("added message to image")
             
             combined_img= combine_images(encoded_img, encrypted_img)
@@ -258,7 +262,8 @@ def handle_video_and_task(data):
             image_data_bytes_bysender = base64.b64decode(combined_img_base64)
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
             top_image_section = Get_Top_image(image_bysender, 200)
-            decoded_msg = retrieve_message(top_image_section)
+            #decoded_msg = retrieve_message(top_image_section)
+            decoded_msg = decode(top_image_section)
 
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
@@ -290,7 +295,8 @@ def handle_video_and_task(data):
             msgorg = json.dumps(msgobj.__dict__)
         
             print("message created ")
-            encoded_img = hide_message(banner_img, msgorg)
+            #encoded_img = hide_message(banner_img, msgorg)
+            encoded_img = encode(banner_img, msgorg)
             print("added message to image")
             
             combined_img_loc= combine_images(encoded_img, encrypted_img2)
@@ -336,7 +342,8 @@ def handle_video_and_task(data):
             msgorg = json.dumps(msgobj.__dict__)
         
             print("message created ")
-            encoded_img = hide_message(banner_img, msgorg)
+            #encoded_img = hide_message(banner_img, msgorg)
+            encoded_img = encode(banner_img, msgorg)
             print("added message to image")
             
             combined_img= combine_images(encoded_img, encrypted_img)
@@ -353,7 +360,8 @@ def handle_video_and_task(data):
             image_data_bytes_bysender = base64.b64decode(combined_img_base64)
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
             top_image_section = Get_Top_image(image_bysender, 200)
-            decoded_msg = retrieve_message(top_image_section)
+            #decoded_msg = retrieve_message(top_image_section)
+            decoded_msg = decode(top_image_section)
 
             # Add data URI scheme to the base64 string
             data_uri = f"data:image/{image_data_base64_bysender_type};base64,{combined_img_base64}"
@@ -379,13 +387,15 @@ def handle_video_and_task(data):
     
     top_image_section = Get_Top_image(image_bysender, 200)
 
-    decoded_msg = retrieve_message(top_image_section)
+    #decoded_msg = retrieve_message(top_image_section)
+    decoded_msg = decode(top_image_section)
     print("msgextracted:", decoded_msg)
     msgextracted= json.loads(decoded_msg)
     print("msgextracted:", msgextracted)
     imgHeader,imgEncrypted=split_images(image_bysender,msgextracted['height1'],msgextracted['height2'] )
     print("encryptionOption:", encryptionOption)
-    decoded_msg = retrieve_message(imgHeader)
+    #decoded_msg = retrieve_message(imgHeader)
+    decoded_msg = decode(imgHeader)
     print("msgextracted:", decoded_msg)
     if encryptionOption =='1' :
         video_frame = data.get('videoFrame')
