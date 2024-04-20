@@ -231,13 +231,25 @@ def handle_video_and_task(data):
             banner_img=create_banner(width, height, fileName, banner_text)
       
             print("banner_img created")
-            # Create a message object and serialize it to JSON
-            encrypted_img = encrypt_image(image_bysender, key_receiver)
+           
+            #generate a random key
+            randomKey = keyGeneration.generate_random_key()
+            randomKeyString = keyGeneration.get_string_from_array(randomKey)
+            randomKeyData = randomKeyString.encode('utf-8')
+            processedKey = keyGeneration.prepare_key(key_receiver)
+            encrypted_key = keyGeneration.encrypt(randomKeyData, processedKey)
+            encrypted_key_base64 = base64.b64encode(encrypted_key).decode('utf-8') 
+
+            #encrypt the image with the key
+            encrypted_img = encrypt_image(image_bysender, randomKey)
+
             print("encrypted_img created")
+            # Create a message object and serialize it to JSON
             msgobj = Message()
             #msgobj.secret = key_receiver
             #last 4 digit of the key_receiver
-            msgobj.secret = key_receiver[-4:]
+            msgobj.encryptedKey = encrypted_key_base64
+            msgobj.secret = randomKeyString[-4:]
             msgobj.height1 = banner_img.height
             msgobj.height2 = encrypted_img.height
             msgobj.authOption = 1
@@ -319,9 +331,18 @@ def handle_video_and_task(data):
             encodedVault_receiver =profile_data_receiver[3]
             vault_receiver=decode_object(encodedVault_receiver)   
             key_receiver = vault_receiver.get_key()
+
+            #generate a random key
+            randomKey = keyGeneration.generate_random_key()
+            randomKeyString = keyGeneration.get_string_from_array(randomKey)
+            randomKeyData = randomKeyString.encode('utf-8')
+            processedKey = keyGeneration.prepare_key(key_receiver)
+            encrypted_key = keyGeneration.encrypt(randomKeyData, processedKey)
+            encrypted_key_base64 = base64.b64encode(encrypted_key).decode('utf-8') 
+
             key_receiver_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(distance))
-            combined_key=key_receiver+key_receiver_2
-            last_8_digit=key_receiver[-4:]+key_receiver_2[-4:]
+            combined_key=randomKeyString+key_receiver_2
+            last_8_digit=randomKeyString[-4:]+key_receiver_2[-4:]
             print("vault created")
 
             height = 200
@@ -334,6 +355,7 @@ def handle_video_and_task(data):
             msgobj = Message()
             #msgobj.secret = key_receiver
             #last 4 digit of the key_receiver
+            msgobj.encryptedKey = encrypted_key_base64
             msgobj.secret = last_8_digit
             msgobj.height1 = banner_img.height
             msgobj.height2 = encrypted_img.height
@@ -376,7 +398,7 @@ def handle_video_and_task(data):
     global values, user_actions, isResult   
     print("-----------------------decrypt -------------------")
     encryptionOption = data.get('encryptionOption')
-    senderId = data.get('senderID')
+    receiverID = data.get('receiverID')
 
  
     image_data_base64_bysender = data['file'].split(',')[1]  # remove the 'data:image/png;base64,' prefix
@@ -392,6 +414,12 @@ def handle_video_and_task(data):
     print("msgextracted:", decoded_msg)
     msgextracted= json.loads(decoded_msg)
     print("msgextracted:", msgextracted)
+    msgobjRecovered = Message()
+    msgobjRecovered.__dict__ = msgextracted
+    encryptedKey =""
+    key = None
+    decrypted_key = ""
+
     imgHeader,imgEncrypted=split_images(image_bysender,msgextracted['height1'],msgextracted['height2'] )
     print("encryptionOption:", encryptionOption)
     #decoded_msg = retrieve_message(imgHeader)
@@ -405,21 +433,27 @@ def handle_video_and_task(data):
     
         print("videor frame captured")
         facialFeatureExtractor = FacialFeatureExtractor()
-        facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image2)
+        facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("...", image2)
         if(facialFeatures is None):
             print("loginResult:", facialFeatures)
-            socketio.emit(senderId, {'file':'F','status': 'false'})
+            socketio.emit(receiverID, {'file':'F','status': 'false'})
             return
         print("face based:")
-        profile_data_sender=get_profile_data_by_guid(senderId)
-        encodedVault_sender=profile_data_sender[3]
-        vault_sender=decode_object(encodedVault_sender)
-        loginResult=vault_sender.verify_user_and_get_password(facialFeatures)
-        key_sender = loginResult
+        
+        profile_data_receiver=get_profile_data_by_guid(receiverID)
+        encodedVault_reciver=profile_data_receiver[3]
+        vault_receiver=decode_object(encodedVault_reciver)
+        loginResult=vault_receiver.verify_user_and_get_password(facialFeatures)
+
         if(loginResult is None):
             print("loginResult:", loginResult)
-            socketio.emit(senderId, {'file':'F','status': 'false'})
+            socketio.emit(receiverID, {'file':'F','status': 'false'})
             return
+        encryptedKey = base64.b64decode(msgobjRecovered.encryptedKey)
+        key = keyGeneration.prepare_key(loginResult)
+        decrypted_key = keyGeneration.decrypt(encryptedKey, key).decode('utf-8')
+        key_receiver = decrypted_key
+
     elif encryptionOption =='2' :
         print("location based:")
         longitude = data.get('longitude')
@@ -429,11 +463,11 @@ def handle_video_and_task(data):
         print("distance:", msgextracted["distance"])
         loginResult=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(msgextracted["distance"]))
         print("loginResult:", loginResult)
-        key_sender = loginResult
+        key_receiver = loginResult
         print("sec:", msgextracted["secret"])
-        print("key_sender[-4]:", key_sender[-4:])
-        if msgextracted["secret"] !=  key_sender[-4:] :
-            socketio.emit(senderId, {'file':'','status': 'false'})
+        print("key_receiver[-4]:", key_receiver[-4:])
+        if msgextracted["secret"] !=  key_receiver[-4:] :
+            socketio.emit(receiverID, {'file':'','status': 'false'})
             print("Error: Location mismatch.")
             return
     elif encryptionOption =='3' :
@@ -447,18 +481,22 @@ def handle_video_and_task(data):
         facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image2)
         if(facialFeatures is None):
             print("loginResult:", facialFeatures)
-            socketio.emit(senderId, {'file':'F','status': 'false'})
+            socketio.emit(receiverID, {'file':'F','status': 'false'})
             return
         
         print("face based:")
-        profile_data_sender=get_profile_data_by_guid(senderId)
+        
+        profile_data_sender=get_profile_data_by_guid(receiverID)
         encodedVault_sender=profile_data_sender[3]
         vault_sender=decode_object(encodedVault_sender)
         loginResult_1=vault_sender.verify_user_and_get_password(facialFeatures)
         if(loginResult_1 is None):
             print("loginResult:", loginResult_1)
-            socketio.emit(senderId, {'file':'','status': 'false'})
+            socketio.emit(receiverID, {'file':'','status': 'false'})
             return
+        encryptedKey = base64.b64decode(msgobjRecovered.encryptedKey)
+        key = keyGeneration.prepare_key(loginResult_1)
+        decrypted_key = keyGeneration.decrypt(encryptedKey, key).decode('utf-8')
         longitude = data.get('longitude')
         latitude = data.get('latitude')
         print("longitude:", longitude)
@@ -466,28 +504,27 @@ def handle_video_and_task(data):
         print("distance:", msgextracted["distance"])
         loginResult_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(msgextracted["distance"]))
         org_location_key_part= loginResult_2[-4:]
-        org_face_key_part= loginResult_1[-4:]
-        key_sender = loginResult_1+loginResult_2
+        org_face_key_part= decrypted_key[-4:]
+        key_receiver = decrypted_key+loginResult_2
         #get string from last 68-64
         key_part =msgextracted["secret"][-4:]
         print("sec:", msgextracted["secret"])
         
         if key_part != org_location_key_part :
-            socketio.emit(senderId, {'file':'L','status': 'false'})
+            socketio.emit(receiverID, {'file':'L','status': 'false'})
             print("Error: Location mismatch.")
             return 
         key_part =msgextracted["secret"][:4]
         if key_part != org_face_key_part :
-            socketio.emit(senderId, {'file':'F','status': 'false'})
+            socketio.emit(receiverID, {'file':'F','status': 'false'})
             print("Error: face mismatch.")
             return 
     
-    msgextracted= json.loads(decoded_msg)
-    msgobjRecovered = Message()
-    msgobjRecovered.__dict__ = msgextracted
-    stored_password2 = np.array(key_sender)
+
+    stored_password2 = np.array(key_receiver)
     password_list = stored_password2.astype(str).tolist()
     password_string = "".join(password_list)
+
     decrypted_img = decrypt_image(imgEncrypted, password_string)
     decrypted_img_byte_array = io.BytesIO()
     decrypted_img.save(decrypted_img_byte_array, format=image_data_base64_bysender_type)
@@ -495,7 +532,7 @@ def handle_video_and_task(data):
     decrypted_img_base64 = base64.b64encode(encoded_img_bytes).decode('utf-8')
     # Add data URI scheme to the base64 string
     data_uri = f"data:image/{image_data_base64_bysender_type};base64,{decrypted_img_base64}"
-    socketio.emit(senderId, {'file':data_uri,'status': 'true'})
+    socketio.emit(receiverID, {'file':data_uri,'status': 'true'})
     print("-----------------------decrypt End-------------------")
 
 if __name__ == '__main__':
