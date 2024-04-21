@@ -6,32 +6,24 @@ import skfuzzy as fuzz
 class FuzzyVault:
     _private_secret = ""  # Class-level private variable
     _stored_face_encoding = []  # Class-level private variable
+    _public_key = None  # Class-level private variable
 
     def __init__(self):
         # Initialize variables properly
         self._private_secret = ""
         self._stored_face_encoding = None
 
-    @staticmethod
-    def __generate_random_password():
-        # Generate a random password
-        random_password = np.arange(20)
-        np.random.shuffle(random_password)
-        # Convert the password to a string
-        random_password_str = ''.join(map(str, random_password))
-        random_password_str = np.array([int(x) for x in random_password_str])
-        # Use "12345" as the password for fuzzification
-        stored_password = random_password_str
-        # Convert the NumPy array to a list of strings
-        password_list = stored_password.astype(str).tolist()
-        # Convert the list to a plain string
-        password_string = "".join(password_list)
-        return password_string
-    
-    def register_user(self, face_encoding: np.ndarray):
+   
+    def register_user(self,privateKey:str, face_encoding: np.ndarray):
         # Assign values to class variables
-        self._private_secret = self.__generate_random_password()
+        self._private_secret = privateKey
         self._stored_face_encoding = face_encoding
+
+    def setPublicKey(self, key: str):
+        # Assign values to class variables
+        self._public_key =key
+    def getPublicKey(self):
+        return self._public_key
 
     def get_key(self ):
         return self._private_secret

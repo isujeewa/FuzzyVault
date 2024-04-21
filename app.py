@@ -2,7 +2,7 @@ import io
 import json
 import os
 import numpy as np
-from RSAKeyPair import ExtendedKeyPairGenerator
+from RSAKeyPair import  decrypt_message, deserialize_public_key, encrypt_message, generate_keys, serialize_private_key, serialize_public_key
 import base64
 from io import BytesIO
 from cryptography.hazmat.backends import default_backend
@@ -68,9 +68,14 @@ def handle_video_and_task(data):
         socketio.emit('result_registration', {'status': 'false'})
         return
     else:
-        
+        private_key, public_key =generate_keys()
+        private_pem = serialize_private_key(private_key)
+        public_pem = serialize_public_key(public_key)
+        print("public_pem:", public_pem)
+        print("private_pem:", private_pem)
         fuzzy_vault = FuzzyVault()
-        fuzzy_vault.register_user(facialFeatures)
+        fuzzy_vault.setPublicKey(public_pem)
+        fuzzy_vault.register_user(private_pem, facialFeatures)
         strend=encode_object(fuzzy_vault)
 
         #get new guid
@@ -219,7 +224,7 @@ def handle_video_and_task(data):
             profile_data_receiver=get_profile_data_by_guid(receiverId)
             encodedVault_receiver =profile_data_receiver[3]
             vault_receiver=decode_object(encodedVault_receiver)   
-            key_receiver = vault_receiver.get_key()
+            key_receiver_publickey = vault_receiver.getPublicKey()
             print("vault created")
 
             height = 200
@@ -235,13 +240,11 @@ def handle_video_and_task(data):
             #generate a random key
             randomKey = keyGeneration.generate_random_key()
             randomKeyString = keyGeneration.get_string_from_array(randomKey)
-            randomKeyData = randomKeyString.encode('utf-8')
-            processedKey = keyGeneration.prepare_key(key_receiver)
-            encrypted_key = keyGeneration.encrypt(randomKeyData, processedKey)
+            deserialized_public_key = deserialize_public_key(key_receiver_publickey)
+            encrypted_key = encrypt_message(deserialized_public_key, randomKeyString)
             encrypted_key_base64 = base64.b64encode(encrypted_key).decode('utf-8') 
-
             #encrypt the image with the key
-            encrypted_img = encrypt_image(image_bysender, randomKey)
+            encrypted_img = encrypt_image(image_bysender, randomKeyString)
 
             print("encrypted_img created")
             # Create a message object and serialize it to JSON
@@ -330,14 +333,13 @@ def handle_video_and_task(data):
             profile_data_receiver=get_profile_data_by_guid(receiverId)
             encodedVault_receiver =profile_data_receiver[3]
             vault_receiver=decode_object(encodedVault_receiver)   
-            key_receiver = vault_receiver.get_key()
+            key_receiver_publickey = vault_receiver.getPublicKey()
 
             #generate a random key
             randomKey = keyGeneration.generate_random_key()
             randomKeyString = keyGeneration.get_string_from_array(randomKey)
-            randomKeyData = randomKeyString.encode('utf-8')
-            processedKey = keyGeneration.prepare_key(key_receiver)
-            encrypted_key = keyGeneration.encrypt(randomKeyData, processedKey)
+            deserialized_public_key = deserialize_public_key(key_receiver_publickey)
+            encrypted_key = encrypt_message(deserialized_public_key, randomKeyString)
             encrypted_key_base64 = base64.b64encode(encrypted_key).decode('utf-8') 
 
             key_receiver_2=generate_unique_key(float(latitude), float(longitude), toleration_distance=float(distance))
@@ -450,8 +452,10 @@ def handle_video_and_task(data):
             socketio.emit(receiverID, {'file':'F','status': 'false'})
             return
         encryptedKey = base64.b64decode(msgobjRecovered.encryptedKey)
-        key = keyGeneration.prepare_key(loginResult)
-        decrypted_key = keyGeneration.decrypt(encryptedKey, key).decode('utf-8')
+        print("encryptedKey:", encryptedKey)
+        print("privatekey:", loginResult)
+        decrypted_key = decrypt_message( loginResult,encryptedKey)
+        print("decrypted_key:", decrypted_key)
         key_receiver = decrypted_key
 
     elif encryptionOption =='2' :
@@ -495,8 +499,9 @@ def handle_video_and_task(data):
             socketio.emit(receiverID, {'file':'','status': 'false'})
             return
         encryptedKey = base64.b64decode(msgobjRecovered.encryptedKey)
-        key = keyGeneration.prepare_key(loginResult_1)
-        decrypted_key = keyGeneration.decrypt(encryptedKey, key).decode('utf-8')
+        print("encryptedKey:", encryptedKey)
+        print("privatekey:", loginResult)
+        decrypted_key = decrypt_message( loginResult_1,encryptedKey)
         longitude = data.get('longitude')
         latitude = data.get('latitude')
         print("longitude:", longitude)
@@ -541,25 +546,6 @@ if __name__ == '__main__':
     print("Server started")
 
 
-
-
-key_pair_generator = ExtendedKeyPairGenerator()
-key_pair_generator.save_key_pair()
-
-# Example usage:
-data_to_encrypt = "Sensitive information"
-
-# Encrypt the data using the public key
-encrypted_data = key_pair_generator.encrypt_data(data_to_encrypt, key_pair_generator.public_key.public_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PublicFormat.SubjectPublicKeyInfo
-))
-
-print(f"Encrypted data: {encrypted_data}")
-
-# Decrypt the data using the private key
-decrypted_data = key_pair_generator.decrypt_data(encrypted_data)
-print(f"Decrypted data: {decrypted_data}")
 
 
 
