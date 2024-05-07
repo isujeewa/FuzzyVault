@@ -1,7 +1,5 @@
 import numpy as np
 import face_recognition
-import cv2
-import skfuzzy as fuzz
 
 class FuzzyVault:
     _private_secret = ""  # Class-level private variable
