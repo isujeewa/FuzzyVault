@@ -15,7 +15,6 @@ from steganography import hide_message, retrieve_message
 from steganographyv4 import encode, decode
 from imageGen import Get_Top_image, calculate_text_width,   create_banner,combine_images, create_image,split_images
 from encryption import encrypt_image, decrypt_image
-from fuzzy import capture_image_and_encoding, fuzzify_features, verify_user_and_get_password
 from dataService import insert_profile_data, get_profile_data_by_email,get_all_profiles,get_profile_data_by_guid
 from PIL import Image 
 from common import encode_object, decode_object
@@ -59,10 +58,10 @@ def handle_video_and_task(data):
     image_data = base64.b64decode(base64_text)
     
     # Open the image using PIL (Python Imaging Library)
-    image = Image.open(BytesIO(image_data))
+    i_data = Image.open(BytesIO(image_data))
 
     facialFeatureExtractor = FacialFeatureExtractor()
-    facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", image)
+    facialFeatures =  facialFeatureExtractor.capture_image_and_encoding("Registering your face. Press 'Enter' when ready...", i_data)
     if(facialFeatures is None):
         print("Unable to detect a face. Please align your face with the camera.")
         socketio.emit('result_registration', {'status': 'false'})
@@ -132,22 +131,6 @@ def handle_video_and_task(data):
         return
     socketio.emit('result', {'status': 'true','users':users})
 
-@socketio.on('keyExchange') 
-def handle_video_and_task(data):
-    global values, user_actions, isResult
-    senderId = data.get('senderID')
-    receiverId = data.get('receiverID')
-    profile_data_sender=get_profile_data_by_guid(senderId)
-    encodedVault_sender =profile_data_sender[3]
-    vault_sender=decode_object(encodedVault_sender)   
-    key_sender = vault_sender.get_key()
-    profile_data_receiver=get_profile_data_by_guid(receiverId)
-    encodedVault_receiver =profile_data_receiver[3]
-    vault_receiver=decode_object(encodedVault_receiver)   
-    key_receiver = vault_receiver.get_key()
-    print("key_sender:", key_sender)
-    print("key_receiver:", key_receiver)
-      
 
 @socketio.on('send_message_com') 
 def handle_video_and_task(data):
@@ -200,6 +183,7 @@ def handle_video_and_task(data):
             print("image received")
             image_data_bytes_bysender = base64.b64decode(image_data_base64_bysender)
             image_bysender = Image.open(BytesIO(image_data_bytes_bysender))
+            image_bysender.save("originalimage.png")
             banner_text = message
         else:
             widthText = calculate_text_width(message, 12)
@@ -208,6 +192,8 @@ def handle_video_and_task(data):
             image_data_base64_bysender_type="png"
             message_img_byte_array = io.BytesIO()
             image_bysender.save(message_img_byte_array, format=image_data_base64_bysender_type)
+            #save to disk
+            
             encoded_img_bytes = message_img_byte_array.getvalue()
             message_img_base64 = base64.b64encode(encoded_img_bytes).decode('utf-8')
             imageFile = f"data:image/{image_data_base64_bysender_type};base64,{message_img_base64}"
@@ -533,6 +519,8 @@ def handle_video_and_task(data):
     decrypted_img = decrypt_image(imgEncrypted, password_string)
     decrypted_img_byte_array = io.BytesIO()
     decrypted_img.save(decrypted_img_byte_array, format=image_data_base64_bysender_type)
+    #save to disk
+    decrypted_img.save("decrypted_img.png")
     encoded_img_bytes = decrypted_img_byte_array.getvalue()
     decrypted_img_base64 = base64.b64encode(encoded_img_bytes).decode('utf-8')
     # Add data URI scheme to the base64 string

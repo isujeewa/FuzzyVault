@@ -122,10 +122,3 @@ def extract_messagev2(stego_image):
 
 
 
-original_image = Image.open("demo02.jpg")
-message = "Hello, this is a hidden message!"
-stego_image = hide_messagev2(original_image, message)
-stego_image.save("demo02_1.jpg")
-stego_image = Image.open("demo02_1.jpg")
-extracted_message = extract_messagev2(stego_image)
-print("Extracted message:", extracted_message)

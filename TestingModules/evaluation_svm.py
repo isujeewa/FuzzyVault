@@ -28,8 +28,8 @@ def compare(imageA, imageB):
 
 def main(): 
 
- path01= "Testing\\01_org_img.png"
- path02= "Testing\\07decrypted_img.png"
+ path01= "Testing\\decrypted_img.png"
+ path02= "Testing\\originalimage.png"
  path03= "Testing\\04_combined img.png"
  # Import images
  image1 = cv2.imread(path01)

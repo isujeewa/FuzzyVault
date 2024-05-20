@@ -63,15 +63,3 @@ def decrypt(encrypted_data, key):
     decrypted = decryptor.update(encrypted_data) + decryptor.finalize()
     return decrypted.strip()
 
-# testing the functions
-numeric_key = "306819141215165111947101318172"
-key = prepare_key(numeric_key)
-random_password = get_string_from_array(generate_random_password())
-data = random_password.encode('utf-8')  # Convert to bytes
-
-encrypted_data = encrypt(data, key)
-decrypted_data = decrypt(encrypted_data, key).decode('utf-8')  # Decode bytes to string
-
-print("Original Data:", random_password)
-print("Encrypted Data:", encrypted_data)
-print("Decrypted Data:", decrypted_data)

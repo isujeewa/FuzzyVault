@@ -67,28 +67,3 @@ def decode(image, password=None):
         data = encrypt_decrypt(data, password, 'dec')
     return data
 
-if __name__ == "__main__":
-    choice = input('What do you want to do?\n1. Encrypt\n2. Decrypt\nInput(1/2): ')
-    if choice == '1':
-        input_file_path = input('Enter cover image path (with extension): ')
-        secret_data = input('Enter secret data: ')
-        password = input('Enter password (optional): ')
-        output_file_path = input('Enter output image name (path) (with extension): ')
-        try:
-            input_image = Image.open(input_file_path)  # Load image from path
-            output_image = encode(input_image, secret_data, password)
-            output_image.save(output_file_path)  # Save the modified image
-            print(f'Encoded successfully into {output_file_path}')
-        except Exception as e:
-            print(f"Error: {str(e)}")
-    elif choice == '2':
-        input_file_path = input('Enter stego image path: ')
-        password = input('Enter password (optional): ')
-        try:
-            stego_image = Image.open(input_file_path)  # Load image from path
-            extracted_data = decode(stego_image, password)
-            print('Decrypted data:', extracted_data)
-        except Exception as e:
-            print(f"Error: {str(e)}")
-    else:
-        print('Invalid choice.')

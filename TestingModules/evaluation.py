@@ -152,8 +152,8 @@ def compare_images(image1_path, image2_path):
 
 # Example usage:
 image = "tank"
-path01= "Testing\\01_org_img.png"
-path02= "Testing\\07decrypted_img.png"
+path01= "Testing\\originalimage.png"
+path02= "Testing\\decrypted_img.png"
 image1_path = f"{path01}"
 image2_path = f"{path02}"
 
